@@ -13,16 +13,8 @@ import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLConnection;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
+import java.util.*;
 import java.util.Map.Entry;
-import java.util.Properties;
-import java.util.Scanner;
-import java.util.Timer;
-import java.util.TimerTask;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.logging.Logger;
 import javax.net.ssl.HttpsURLConnection;
@@ -102,6 +94,9 @@ class IOConnection implements IOCallback {
 	/** Custom Request headers used while handshaking */
 	private Properties headers;
 
+	/** Custom Query Parameters to be send during the handshake */
+	private Properties queryParams;
+	
 	/**
 	 * The first socket to be connected. the socket.io server does not send a
 	 * connected response to this one.
@@ -229,7 +224,7 @@ class IOConnection implements IOCallback {
 	 *            the socket
 	 * @return a IOConnection object
 	 */
-	static public IOConnection register(String origin, SocketIO socket) {
+	static public IOConnection register(String origin, SocketIO socket, Properties queryParams) {
 		List<IOConnection> list = connections.get(origin);
 		if (list == null) {
 			list = new LinkedList<IOConnection>();
@@ -243,12 +238,16 @@ class IOConnection implements IOCallback {
 			}
 		}
 
+        if(queryParams != null) {
+
+        }
 		IOConnection connection = new IOConnection(origin, socket);
-		list.add(connection);
+        if(queryParams != null) connection.setQueryParams(queryParams);
+        list.add(connection);
 		return connection;
 	}
 
-	/**
+    /**
 	 * Connects a socket to the IOConnection.
 	 * 
 	 * @param socket
@@ -285,6 +284,11 @@ class IOConnection implements IOCallback {
 		}
 	}
 
+
+    public synchronized void setQueryParams(Properties params) {
+        queryParams = params;
+    }
+
 	/**
 	 * Handshake.
 	 * 
@@ -295,8 +299,22 @@ class IOConnection implements IOCallback {
 		URLConnection connection;
 		try {
 			setState(STATE_HANDSHAKE);
-			url = new URL(IOConnection.this.url.toString() + SOCKET_IO_1);
-			connection = url.openConnection();
+
+            /* Build out a queryparam string if appropriate */
+            String params = "";
+            if(queryParams != null) {
+                StringBuilder paramBuilder = new StringBuilder();
+                paramBuilder.append("?");
+                for (Entry<Object, Object> entry : queryParams.entrySet()) {
+                    paramBuilder.append(entry.getKey() + "=" + entry.getValue());
+                    paramBuilder.append("&");
+                }
+                params = paramBuilder.toString();
+            }
+
+			url = new URL(IOConnection.this.url.toString() + SOCKET_IO_1 + params);
+            System.out.println("io.socket connecting to: " + url.toString());
+            connection = url.openConnection();
 			if (connection instanceof HttpsURLConnection) {
 				((HttpsURLConnection) connection)
 						.setSSLSocketFactory(sslContext.getSocketFactory());

@@ -38,8 +38,8 @@ public class SocketIO {
 
 	/**
 	 * Instantiates a new socket.io connection. The object connects after
-	 * calling {@link #connect(URL, IOCallback)} or
-	 * {@link #connect(String, IOCallback)}
+	 * calling {@link #connect(URL, IOCallback,Properties)} or
+	 * {@link #connect(String, IOCallback,Properties)}
 	 */
 	public SocketIO() {
 
@@ -57,7 +57,7 @@ public class SocketIO {
 	public SocketIO(final String url) throws MalformedURLException {
 		if (url == null)
 			throw new RuntimeException("url may not be null.");
-		setAndConnect(new URL(url), null);
+		setAndConnect(new URL(url), null, null);
 	}
 
 	/**
@@ -80,7 +80,7 @@ public class SocketIO {
 		if (headers != null)
 			this.headers = headers;
 
-		setAndConnect(new URL(url), null);
+		setAndConnect(new URL(url), null, null);
 	}
 
 	/**
@@ -96,7 +96,7 @@ public class SocketIO {
 	 */
 	public SocketIO(final String url, final IOCallback callback)
 			throws MalformedURLException {
-		connect(url, callback);
+		connect(url, callback, null);
 	}
 
 	/**
@@ -108,8 +108,8 @@ public class SocketIO {
 	 * @param callback
 	 *            the callback
 	 */
-	public SocketIO(final URL url, final IOCallback callback) {
-		if (setAndConnect(url, callback) == false)
+	public SocketIO(final URL url, final IOCallback callback, Properties queryParams) {
+		if (setAndConnect(url, callback, null) == false)
 			throw new RuntimeException("url and callback may not be null.");
 	}
 
@@ -121,12 +121,12 @@ public class SocketIO {
 	 *            the url
 	 */
 	public SocketIO(final URL url) {
-		setAndConnect(url, null);
+		setAndConnect(url, null, null);
 	}
 	
 	/**
 	 * Set the socket factory used for SSL connections.
-	 * @param socketFactory
+	 * @param sslContext
 	 */
 	public static void setDefaultSSLSocketFactory(SSLContext sslContext) {
 		IOConnection.setSslContext(sslContext);
@@ -141,9 +141,9 @@ public class SocketIO {
 	 * @param callback
 	 *            the callback
 	 */
-	public void connect(final String url, final IOCallback callback)
+	public void connect(final String url, final IOCallback callback, final Properties queryParams)
 			throws MalformedURLException {
-		if (setAndConnect(new URL(url), callback) == false) {
+		if (setAndConnect(new URL(url), callback, queryParams) == false) {
 			if (url == null || callback == null)
 				throw new RuntimeException("url and callback may not be null.");
 			else
@@ -161,8 +161,8 @@ public class SocketIO {
 	 * @param callback
 	 *            the callback
 	 */
-	public void connect(URL url, IOCallback callback) {
-		if (setAndConnect(url, callback) == false) {
+	public void connect(URL url, IOCallback callback, Properties queryParams) {
+		if (setAndConnect(url, callback, queryParams) == false) {
 			if (url == null || callback == null)
 				throw new RuntimeException("url and callback may not be null.");
 			else
@@ -180,7 +180,7 @@ public class SocketIO {
 	 *            the callback
 	 */
 	public void connect(IOCallback callback) {
-		if (setAndConnect(null, callback) == false) {
+		if (setAndConnect(null, callback, null) == false) {
 			if (callback == null)
 				throw new RuntimeException("callback may not be null.");
 			else if (this.url == null)
@@ -198,7 +198,7 @@ public class SocketIO {
 	 *            the callback
 	 * @return true if connecting has been initiated, false if not
 	 */
-	private boolean setAndConnect(URL url, IOCallback callback) {
+	private boolean setAndConnect(URL url, IOCallback callback, Properties queryParams) {
 		if(this.connection != null)
 			throw new RuntimeException("You can connect your SocketIO instance only once. Use a fresh instance instead.");
 		if ((this.url != null && url != null)
@@ -217,7 +217,8 @@ public class SocketIO {
 			if (this.namespace.equals("/")) {
 				this.namespace = "";
 			}
-			this.connection = IOConnection.register(origin, this);
+
+			this.connection = IOConnection.register(origin, this, queryParams);
 			return true;
 		}
 		return false;
